@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "products": {
+      "title": "Digital Product",
+      "description": "Digital products collection for e-books, templates, and software.",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the product" },
+        "slug": { "type": "string", "description": "URL slug" },
+        "description": { "type": "string", "description": "Full product description" },
+        "shortDescription": { "type": "string", "description": "Short description" },
+        "type": { "type": "string", "description": "Product category type" },
+        "price": { "type": "number", "description": "Current selling price" },
+        "originalPrice": { "type": "number", "description": "Original price before discount" },
+        "rating": { "type": "number", "description": "Average user rating" },
+        "reviewsCount": { "type": "number", "description": "Total reviews count" },
+        "salesCount": { "type": "number", "description": "Total sales volume" },
+        "featured": { "type": "boolean", "description": "Featured status" },
+        "coverImage": { "type": "string", "description": "Cover image URL" },
+        "fileFormat": { "type": "string", "description": "File format description" },
+        "downloadUrl": { "type": "string", "description": "Digital download URL" },
+        "storeId": { "type": "string", "description": "Creator store ID" },
+        "storeName": { "type": "string", "description": "Creator store name" },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "Product tags" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["title", "price", "downloadUrl", "storeId"]
+    },
+    "stores": {
+      "title": "Creator Store",
+      "description": "Digital creator store details",
+      "properties": {
+        "name": { "type": "string", "description": "Store name" },
+        "slug": { "type": "string", "description": "Store slug" },
+        "tagline": { "type": "string", "description": "Tagline" },
+        "totalSales": { "type": "number", "description": "Total sales count" },
+        "totalRevenue": { "type": "number", "description": "Total revenue in BRL" },
+        "ownerEmail": { "type": "string", "description": "Owner email address" },
+        "plan": { "type": "string", "description": "Subscription plan" },
+        "verified": { "type": "boolean", "description": "Verification status" }
+      },
+      "required": ["name", "ownerEmail"]
+    },
+    "orders": {
+      "title": "Order",
+      "description": "Customer purchase orders",
+      "properties": {
+        "customerName": { "type": "string", "description": "Customer name" },
+        "customerEmail": { "type": "string", "description": "Customer email" },
+        "totalAmount": { "type": "number", "description": "Total purchase amount" },
+        "paymentMethod": { "type": "string", "description": "Payment method" },
+        "status": { "type": "string", "description": "Order status (pending, approved, cancelled)" },
+        "pixQrCode": { "type": "string", "description": "PIX QR code URL" },
+        "pixCopiaECola": { "type": "string", "description": "PIX copia e cola string" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "invoiceNumber": { "type": "string", "description": "Invoice receipt number" }
+      },
+      "required": ["customerEmail", "totalAmount", "status"]
+    },
+    "mercadopago_config": {
+      "title": "MercadoPago Config",
+      "description": "Mercado Pago API credentials and webhook configuration",
+      "properties": {
+        "accessToken": { "type": "string", "description": "Production access token" },
+        "publicKey": { "type": "string", "description": "Production public key" },
+        "clientSecret": { "type": "string", "description": "Client secret" },
+        "webhookUrl": { "type": "string", "description": "Webhook URL" },
+        "autoApprovePix": { "type": "boolean", "description": "Auto approve PIX" },
+        "isTestMode": { "type": "boolean", "description": "Sandbox test mode flag" }
+      }
+    }
+  }
+}
