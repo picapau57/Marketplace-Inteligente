@@ -145,7 +145,7 @@ app.get('/api/mercadopago/config', requireAdmin, async (req, res) => {
 });
 
 // Mercado Pago Admin Configuration (Protected by Admin Auth)
-app.get('/api/admin/mercadopago/config', requireAdminAuth, async (req, res) => {
+app.get('/api/admin/mercadopago/config', requireAdmin, async (req, res) => {
   const config = await getMPConfig();
   res.json(config);
 });
