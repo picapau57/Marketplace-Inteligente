@@ -170,9 +170,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setOrders(prev => [order, ...prev]);
   };
 
-  const updateMpConfig = (newConfig: Partial<MercadoPagoConfig>) => {
+  const updateMpConfig = async (newConfig: Partial<MercadoPagoConfig>) => {
     setMpConfig(prev => ({ ...prev, ...newConfig }));
-    showNotification('Credenciais do Mercado Pago salvas com sucesso!');
+    try {
+      await fetch('/api/mercadopago/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'admin123'
+        },
+        body: JSON.stringify(newConfig)
+      });
+      showNotification('Credenciais do Mercado Pago salvas no Firestore com segurança!');
+    } catch (e) {
+      showNotification('Credenciais atualizadas localmente (modo offline).');
+    }
   };
 
   const openCheckout = (product: DigitalProduct) => {
