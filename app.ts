@@ -1,5 +1,6 @@
 import express from 'express';
 import { GoogleGenAI } from '@google/genai';
+import { requireAdmin } from './src/middleware/requireAdmin.js';
 import { 
   collection, 
   getDocs, 
@@ -132,7 +133,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Mercado Pago Public Configuration (returns safe subset)
-app.get('/api/mercadopago/config', async (req, res) => {
+app.get('/api/mercadopago/config', requireAdmin, async (req, res) => {
   const config = await getMPConfig();
   res.json({
     publicKey: config.publicKey,
@@ -149,7 +150,7 @@ app.get('/api/admin/mercadopago/config', requireAdminAuth, async (req, res) => {
   res.json(config);
 });
 
-app.post('/api/mercadopago/config', requireAdminAuth, async (req, res) => {
+app.post('/api/mercadopago/config', requireAdmin, async (req, res) => {
   const { accessToken, publicKey, clientSecret, webhookUrl, autoApprovePix, isTestMode, pixExpirationMinutes } = req.body;
   
   const currentConfig = await getMPConfig();
@@ -595,7 +596,7 @@ Responda sempre de forma profissional, atrativa e formatada com marcadores (bull
 });
 
 // Admin Metrics (Protected by Admin Auth)
-app.get('/api/admin/metrics', requireAdminAuth, async (req, res) => {
+app.get('/api/admin/metrics', requireAdmin, async (req, res) => {
   try {
     const storesSnap = await getDocs(collection(db, 'stores'));
     const storesList = storesSnap.docs.map(d => d.data() as CreatorStore);
