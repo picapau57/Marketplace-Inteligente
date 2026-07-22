@@ -1,0 +1,6 @@
+{
+  "name": "Digital Market Pro",
+  "description": "The Smart Marketplace for Digital Products - SaaS platform for selling eBooks, Courses, Canva Templates, Software, and AI Prompts with Mercado Pago PIX, Store Rentals, and Multi-language support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

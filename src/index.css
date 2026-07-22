@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #050505;
+    color: #f8fafc;
+  }
+}
+
+/* Custom theme utilities for Bold Typography */
+.font-display {
+  font-family: var(--font-sans);
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.font-mono-code {
+  font-family: var(--font-mono);
+}
+
+.bg-dark-card {
+  background-color: #0a0a0a;
+}
+
+.bg-dark-elevated {
+  background-color: #121212;
+}
+
+.border-dark-border {
+  border-color: #1f1f23;
+}
+
+.btn-primary-bold {
+  background-color: #0066FF;
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+}
+
+.btn-primary-bold:hover {
+  background-color: #0052cc;
+  box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f1f23;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0066FF;
+}
