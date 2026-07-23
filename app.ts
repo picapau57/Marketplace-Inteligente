@@ -602,7 +602,7 @@ app.get('/api/orders/:orderId/download', async (req, res) => {
 app.get('/api/buyer/orders', async (req, res) => {
   const { email, orderId } = req.query;
   const adminKey = req.headers['x-admin-key'];
-  const isAdmin = adminKey && (adminKey === process.env.ADMIN_SECRET_KEY || adminKey === 'admin123');
+  const isAdmin = !!adminKey && !!process.env.ADMIN_SECRET_KEY && adminKey === process.env.ADMIN_SECRET_KEY;
 
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'O e-mail do comprador é obrigatório.' });
