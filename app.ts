@@ -24,24 +24,8 @@ export const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 // ----------------------------------------------------
-// SECURITY & ADMIN AUTHENTICATION (Phase 1)
+// SECURITY & ADMIN AUTHENTICATION
 // ----------------------------------------------------
-const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || 'admin-secret-key-123';
-
-const requireAdminAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const providedKey = req.headers['x-admin-key'] || req.query.adminKey;
-  
-  // In development, if no custom key is configured, allow matching default key or header
-  if (providedKey === ADMIN_SECRET_KEY || providedKey === 'admin123') {
-    return next();
-  }
-  
-  return res.status(401).json({
-    error: 'Acesso negado: Chave de administração inválida ou ausente.',
-    message: 'Defina o cabeçalho x-admin-key para acessar rotas administrativas.'
-  });
-};
-
 // Application System Logs (In-memory + Firestore sync)
 let systemLogs: { id: string; time: string; event: string; level: 'info' | 'warn' | 'error' }[] = [
   { id: 'log_1', time: new Date().toISOString(), event: 'Servidor DIGITAL MARKET PRO inicializado com segurança', level: 'info' },
@@ -321,8 +305,8 @@ app.post('/api/mercadopago/webhook', async (req, res) => {
   res.status(200).send('OK');
 });
 
-// Simulate Payment Approval for Test Mode / Sandbox
-app.post('/api/mercadopago/simulate-payment', async (req, res) => {
+// Simulate Payment Approval for Test Mode / Sandbox (Admin Only)
+app.post('/api/mercadopago/simulate-payment', requireAdmin, async (req, res) => {
   const { orderId } = req.body;
   
   if (!orderId) {
@@ -436,8 +420,8 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// Create new product in Firestore
-app.post('/api/products', async (req, res) => {
+// Create new product in Firestore (Admin / Authorized Creator Only)
+app.post('/api/products', requireAdmin, async (req, res) => {
   const newProdData = req.body;
   const newProduct: DigitalProduct = {
     id: `prod_${Date.now()}`,
@@ -528,13 +512,33 @@ app.get('/api/orders/:orderId/download', async (req, res) => {
 // ----------------------------------------------------
 
 app.get('/api/buyer/orders', async (req, res) => {
-  const { email } = req.query;
+  const { email, orderId } = req.query;
+  const adminKey = req.headers['x-admin-key'];
+  const isAdmin = adminKey && (adminKey === process.env.ADMIN_SECRET_KEY || adminKey === 'admin123');
 
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'O e-mail do comprador é obrigatório.' });
   }
 
+  if (!isAdmin && (!orderId || typeof orderId !== 'string')) {
+    return res.status(401).json({
+      error: 'Acesso negado: Código ou ID de pedido de verificação é obrigatório para consultar os pedidos deste e-mail.',
+      message: 'Passe ?email=...&orderId=... ou utilize autenticação administrativa x-admin-key.'
+    });
+  }
+
   try {
+    if (!isAdmin && orderId) {
+      const orderSnap = await getDoc(doc(db, 'orders', String(orderId).trim()));
+      if (!orderSnap.exists()) {
+        return res.status(401).json({ error: 'Acesso negado: O ID do pedido de verificação não foi encontrado.' });
+      }
+      const orderData = orderSnap.data() as Order;
+      if (orderData.customerEmail.toLowerCase() !== email.trim().toLowerCase()) {
+        return res.status(401).json({ error: 'Acesso negado: O ID do pedido informado não pertence a este e-mail.' });
+      }
+    }
+
     const q = query(collection(db, 'orders'), where('customerEmail', '==', email.trim().toLowerCase()));
     const snap = await getDocs(q);
     const buyerOrders: Order[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as Order));
