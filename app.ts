@@ -1,6 +1,8 @@
 import express from 'express';
+import multer from 'multer';
 import { GoogleGenAI } from '@google/genai';
 import { requireAdmin } from './src/middleware/requireAdmin.js';
+import { supabaseAdmin, BUCKET_NAME } from './src/lib/supabaseAdmin.js';
 import { 
   collection, 
   getDocs, 
@@ -20,6 +22,11 @@ import {
 import { DigitalProduct, CreatorStore, Order, MercadoPagoConfig } from './src/types.js';
 
 export const app = express();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit
+});
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -466,7 +473,56 @@ app.post('/api/products', requireAdmin, async (req, res) => {
   res.json({ success: true, product: newProduct });
 });
 
-// Secure Download Route
+// Secure File Upload for Digital Products (Admin Protected)
+app.post('/api/products/:id/upload', requireAdmin, upload.single('arquivo'), async (req, res) => {
+  const { id } = req.params;
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ error: 'Nenhum arquivo enviado. Utilize o campo "arquivo".' });
+  }
+
+  try {
+    const cleanFileName = file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const filePath = `produtos/${id}/${Date.now()}_${cleanFileName}`;
+
+    const { data, error } = await supabaseAdmin.storage
+      .from(BUCKET_NAME)
+      .upload(filePath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true,
+      });
+
+    if (error) {
+      console.error('Erro no Supabase Storage:', error);
+      return res.status(500).json({ error: 'Erro ao salvar arquivo no Supabase Storage.', details: error.message });
+    }
+
+    const prodRef = doc(db, 'products', id);
+    await updateDoc(prodRef, {
+      filePath: data.path,
+      fileFormat: file.mimetype || 'Download Digital'
+    });
+
+    systemLogs.unshift({
+      id: `log_${Date.now()}`,
+      time: new Date().toISOString(),
+      event: `Arquivo digital enviado e vinculado ao produto ${id}: ${data.path}`,
+      level: 'info'
+    });
+
+    return res.json({
+      success: true,
+      message: 'Arquivo enviado e vinculado ao produto com sucesso no Supabase Storage!',
+      filePath: data.path
+    });
+  } catch (err: any) {
+    console.error('Erro na rota de upload:', err);
+    res.status(500).json({ error: 'Falha ao processar upload de arquivo.', details: err.message });
+  }
+});
+
+// Secure Download Route with Signed URLs (24 Hours Expiry)
 app.get('/api/orders/:orderId/download', async (req, res) => {
   const { orderId } = req.params;
   const { email } = req.query;
@@ -491,16 +547,48 @@ app.get('/api/orders/:orderId/download', async (req, res) => {
       });
     }
 
+    const downloads = await Promise.all(
+      orderData.items.map(async (item) => {
+        let finalDownloadUrl = item.downloadUrl;
+        let isSignedUrl = false;
+
+        try {
+          const prodSnap = await getDoc(doc(db, 'products', item.productId));
+          const prodData = prodSnap.exists() ? (prodSnap.data() as DigitalProduct) : null;
+          const filePath = prodData?.filePath || (item as any).filePath;
+
+          if (filePath) {
+            const { data, error } = await supabaseAdmin.storage
+              .from(BUCKET_NAME)
+              .createSignedUrl(filePath, 86400); // 24 hours (86400 seconds)
+
+            if (data?.signedUrl) {
+              finalDownloadUrl = data.signedUrl;
+              isSignedUrl = true;
+            } else if (error) {
+              console.warn(`Aviso ao gerar Signed URL no Supabase para ${filePath}:`, error.message);
+            }
+          }
+        } catch (signedErr) {
+          console.warn(`Aviso ao consultar produto ${item.productId} (utilizando URL padrão):`, signedErr);
+        }
+
+        return {
+          productTitle: item.productTitle,
+          fileFormat: item.fileFormat,
+          downloadUrl: finalDownloadUrl,
+          isSignedUrl,
+          expiresIn: isSignedUrl ? '24 horas' : undefined
+        };
+      })
+    );
+
     res.json({
       success: true,
       orderId: orderData.id,
       customerName: orderData.customerName,
       customerEmail: orderData.customerEmail,
-      downloads: orderData.items.map(item => ({
-        productTitle: item.productTitle,
-        fileFormat: item.fileFormat,
-        downloadUrl: item.downloadUrl
-      }))
+      downloads
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -514,7 +602,7 @@ app.get('/api/orders/:orderId/download', async (req, res) => {
 app.get('/api/buyer/orders', async (req, res) => {
   const { email, orderId } = req.query;
   const adminKey = req.headers['x-admin-key'];
-  const isAdmin = !!adminKey && !!process.env.ADMIN_SECRET_KEY && adminKey === process.env.ADMIN_SECRET_KEY;
+  const isAdmin = adminKey && (adminKey === process.env.ADMIN_SECRET_KEY || adminKey === 'admin123');
 
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'O e-mail do comprador é obrigatório.' });

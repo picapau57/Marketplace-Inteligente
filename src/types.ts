@@ -55,6 +55,7 @@ export interface DigitalProduct {
   previewImages: string[];
   fileFormat: string; // e.g. "ZIP (350 MB)", "PDF (24 Pages)", "Canva Link", "Notion Template"
   downloadUrl: string;
+  filePath?: string;
   storeId: string;
   storeName: string;
   storeLogo: string;
